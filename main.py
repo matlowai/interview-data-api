@@ -110,7 +110,8 @@ async def categorize_claim(claim_text: str, better_prompt: bool = False):
     max_attempts = 4
     for attempt in range(max_attempts):
         try:
-            async with httpx.AsyncClient() as client:
+            timeout = httpx.Timeout(600.0, connect=600.0)
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 response = await client.post(gpt_service_url, json=request_body)
                 if response.status_code == 200:
                     gpt_response = response.json()
