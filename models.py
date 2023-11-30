@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 class PolicyholderRequest(BaseModel):
     number_of_policyholders: int
@@ -7,7 +7,10 @@ class PolicyholderRequest(BaseModel):
 
 class GenerateClaimNotesRequest(BaseModel):
     number_of_notes: int
-    policyholder_id: str  # New field to link claim notes with a policyholder
+    policyholder_ids: List[str]  # Array of policyholder IDs
+
+class ProcessClaimsRequest(BaseModel):
+    claimIds: List[str]
 
 class Policyholder(BaseModel):
     id: str
@@ -20,3 +23,9 @@ class AddClaimRequest(BaseModel):
     policyholder_id: str
     details: Optional[str] = None  # Making details optional
     generate_random: bool = Field(default=False, description="Flag to indicate if the claim should be randomly generated")
+
+class ClaimIdsRequest(BaseModel):
+    claimIds: List[str]
+    
+class AuthCode(BaseModel):
+    code: str

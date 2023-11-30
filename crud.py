@@ -1,7 +1,9 @@
 from fastapi import HTTPException
 from models import Policyholder
 from database import container
+from typing import List, Optional
 from faker import Faker
+from logger import logger
 import uuid
 import random
 import os
@@ -23,17 +25,19 @@ def generate_and_add_claim_notes_to_db(number_of_notes: int, policyholder_id: st
         claim_note_item = {
             "id": claim_note_id,
             "policyholder_id": policyholder_id,
-            "textfile": note,  # Store the note text directly
-            # Additional metadata if needed
+            "textfile": note,  # Store the note text to cosmos instead because its better for text file data
+            # Additional metadata eventually if there is time
         }
         container.upsert_item(claim_note_item)
     print("Claim notes added to Cosmos DB")
 
-# Update generate_claim_notes function in the crud module to accept policyholder_id
+
 def generate_claim_notes(number_of_notes: int, policyholder_id: str):
     return generate_and_add_claim_notes_to_db(number_of_notes, policyholder_id)
 
-
+def get_all_claims():
+    query = "SELECT * FROM c WHERE IS_DEFINED(c.policyholder_id) AND IS_DEFINED(c.analysis)"
+    return list(container.query_items(query=query, enable_cross_partition_query=True))
 
 # Function to save a claim note to a file
 def save_claim_note_file(claim_note: str, file_name: str):
@@ -54,7 +58,7 @@ def get_claim_note_file_local(file_name: str):
     return None
 
 def get_claim_note_file(file_name: str):
-    blob_client = container_client.get_blob_client(file_name)
+    blob_client = container.get_blob_client(file_name)
     try:
         download_stream = blob_client.download_blob()
         return download_stream.readall().decode("utf-8")
@@ -64,9 +68,9 @@ def get_claim_note_file(file_name: str):
 
 
 # Function to analyze claim notes (Placeholder for actual logic)
-def analyze_claim_notes():
+#def analyze_claim_notes():
     # Placeholder for analysis logic
-    return {"analysis": "Analysis results"}
+#    return {"analysis": "Analysis results"}
 
 
 def generate_policyholder_data():
@@ -90,7 +94,11 @@ def create_policyholder(policyholder: Policyholder):
     }
 
 def get_policyholders():
-    return list(container.read_all_items())
+    query = "SELECT * FROM c WHERE NOT IS_DEFINED(c.policyholder_id)"
+    ret = list(container.query_items(query=query, enable_cross_partition_query=True))
+    logger.info(ret)
+    return ret
+
 
 def get_policyholder(id: str):
     try:
@@ -114,11 +122,12 @@ def delete_policyholder(id: str):
     except Exception as e:
         raise HTTPException(status_code=404, detail=f"Policyholder with id {id} not found")
 
-
 def search_policyholders(name: str):
-    query = "SELECT * FROM c WHERE c.name = @name"
-    parameters = [{"name": "@name", "value": name}]
-    return list(container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
+    query = "SELECT * FROM c WHERE CONTAINS(LOWER(c.name), LOWER(@name))"
+    parameters = [{"name": "@name", "value": name.lower()}]
+    ret = list(container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
+    logger.info(ret)
+    return ret
 
 def calculate_average_policy_amount():
     policyholders = get_policyholders()
@@ -126,3 +135,43 @@ def calculate_average_policy_amount():
         return 0
     total = sum(p['policy_amount'] for p in policyholders)
     return total / len(policyholders)
+
+# Fetch claims for specific policyholder IDs
+def get_claims_for_policyholders(ids: List[str]):
+    query = "SELECT * FROM c WHERE c.policyholder_id IN (@ids)"
+    parameters = [{"name": "@ids", "value": ids}]
+    return list(container.query_items(query=query, parameters=parameters, enable_cross_partition_query=True))
+
+# Fetch all claims
+def get_all_claims():
+    query = "SELECT * FROM c WHERE IS_DEFINED(c.policyholder_id)"
+    return list(container.query_items(query=query, enable_cross_partition_query=True))
+
+#gets claim by claim id
+def get_claim_by_id(claim_id: str):
+    try:
+        return container.read_item(item=claim_id, partition_key=claim_id)
+    except Exception as e:
+        return None
+
+def update_claim_with_gptmsg(claim_id: str, gptmsg: str):
+    claim = get_claim_by_id(claim_id)
+    if claim:
+        claim['gptmsg'] = gptmsg
+        container.upsert_item(claim)
+
+def delete_claim(claim_id: str):
+    try:
+        container.delete_item(claim_id, partition_key=claim_id)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Claim with id {claim_id} not found")
+
+def update_claim_with_file_blob_name(claim_id: str, blob_name: str):
+    try:
+        #other tenant didn't like blobs but I'm ok in mine it looks like
+        claim_item = get_claim_by_id(claim_id)
+        if claim_item:
+            claim_item['file_blob_name'] = blob_name
+            container.upsert_item(claim_item)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating claim {claim_id}")

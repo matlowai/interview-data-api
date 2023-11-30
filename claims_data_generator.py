@@ -1,11 +1,11 @@
 import os
 import random
 from faker import Faker
-#pip install markovify --index-url "https://art.nwie.net/artifactory/api/pypi/pypi/simple" 
 import markovify
 import numpy as np
 from azure.storage.blob import BlobServiceClient, BlobClient
 from config_loader import config
+from database import container
 
 # Initialize Azure Blob Service Client
 blob_service_client = BlobServiceClient.from_connection_string(config['azure_blob_storage']['connection_string_one'])
@@ -14,29 +14,49 @@ container_client = blob_service_client.get_container_client(config['azure_blob_s
 # Initialize Faker
 fake = Faker()
 
-# Directory to store claim notes
+# Directory to store claim notes during early development
 os.makedirs('claim_notes', exist_ok=True)
 
-# Sample sentences categorized by incident type
 sample_sentences_by_type = {
     "Water Damage": [
         "Significant water leakage in the basement.",
-        "Pipe burst in the bathroom, causing floor damage.",
-        # ... more sentences for Water Damage
+        "Pipe burst in the bathroom, causing floor damage."
     ],
     "Fire Damage": [
         "Kitchen fire damaged appliances and cabinets.",
-        "Electrical fault caused a small fire in the living room.",
-        # ... more sentences for Fire Damage
+        "Electrical fault caused a small fire in the living room."
     ],
-    # ... additional categories with their sentences
+    "Theft/Burglary": [
+        "Burglars broke in through the back door, stealing electronics and jewelry.",
+        "Personal belongings were stolen during a home invasion last night."
+    ],
+    "Auto Accident": [
+        "Rear-end collision at a traffic light resulted in significant bumper damage.",
+        "Side-swipe accident on the highway caused dents and scratches to the vehicle."
+    ],
+    "Natural Disaster": [
+        "Roof damaged due to high winds during the hurricane.",
+        "Tornado caused extensive damage to the property, including broken windows and a collapsed fence."
+    ],
+    "Health/Medical": [
+        "Emergency surgery required after a severe accident.",
+        "Long-term hospitalization due to a critical illness."
+    ],
+    "Liability Claims": [
+        "Visitor slipped and fell on the icy driveway, resulting in a broken leg.",
+        "Neighbor's child injured while playing in our backyard."
+    ]
 }
 
 # Claim amount ranges by incident type
 claim_amount_ranges = {
     "Water Damage": (3000, 20000),
     "Fire Damage": (10000, 50000),
-    # ... other categories with their ranges
+    "Theft/Burglary": (5000, 30000),
+    "Auto Accident": (2000, 25000),
+    "Natural Disaster": (10000, 100000),
+    "Health/Medical": (10000, 200000),
+    "Liability Claims": (5000, 50000)
 }
 
 # Create Markov models for each incident type
@@ -72,7 +92,7 @@ def generate_claim_note(policyholder_id: str):
     category = random.choice(list(sample_sentences_by_type.keys()))
     markov_model = markov_models[category]
     incident_date = fake.date_between(start_date='-2y', end_date='today')
-    policyholder_name = fake.name()  # This could be fetched based on the policyholder_id if needed
+    policyholder_name = get_policyholder_name_by_id(policyholder_id)
     detail = markov_model.make_short_sentence(320)
     claim_amount = generate_claim_amount(category)
 
@@ -89,9 +109,8 @@ def generate_claim_note(policyholder_id: str):
     print(claim_note_text)
     return claim_note_text
 
-# Update the generate_claim_notes function to pass the policyholder_id
-def generate_claim_notes(number_of_notes: int, policyholder_id: str):
-    print("Generating claim notes with policyholder_id:", policyholder_id)
+def generate_claim_notes(number_of_notes, policyholder_id):
+
     return [generate_claim_note(policyholder_id) for _ in range(number_of_notes)]
 
 
@@ -111,6 +130,10 @@ def generate_and_save_claim_notes(n):
         print(blob_client)
         blob_client.upload_blob(claim_note, overwrite=True)
 
-def generate_claim_notes(n):
-    print("I'm a generate claim notes inside generator.py")
-    return [generate_claim_note() for _ in range(n)]
+
+def get_policyholder_name_by_id(policyholder_id: str):
+    try:
+        policyholder = container.read_item(item=policyholder_id, partition_key=policyholder_id)
+        return policyholder.get('name', fake.name())  # Return the name if available, otherwise generate a random name
+    except Exception:
+        return "Error"  # In case of any exception, return Error as the name
