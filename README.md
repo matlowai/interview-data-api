@@ -1,7 +1,12 @@
 For local language model implementation I used:
-https://github.com/oobabooga/
+https://github.com/oobabooga/text-generation-webui/
 https://huggingface.co/TheBloke/Capybara-Tess-Yi-34B-200K-GPTQ
 8k context length is recommended, 200k context is max but exceeds 24GB card. default import settings are good
+
+https://huggingface.co/TheBloke/Capybara-Tess-Yi-34B-200K-GGUF
+this model will work, extremely slowly with CPU only with enough ram. See ram table and choose based on your dev machine and overhead. If you overflow memory when loading scale back the context size or drop a model quantization.
+
+Remember to enable the api check box and openai check boxes in settings then save.  adding them to the yaml so it loads each time is recommended
 
 I also experimented with this but it would have needed additional tuning to make work
 https://huggingface.co/TheBloke/openinstruct-mistral-7B-GPTQ/
