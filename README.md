@@ -8,14 +8,24 @@ https://huggingface.co/TheBloke/openinstruct-mistral-7B-GPTQ/
 
 # dylan-insurance-data-api
 Interview python api
+
+run this to make sure you have these libraries just 
+
 pip install pandas azure-cosmos python-multipart fastapi uvicorn markovify faker pyyaml azure-storage-blob azure-storage-blob azure-identity azure-keyvault-secrets azure-appconfiguration httpx fastapi-security --index-url "https://art.nwie.net/artifactory/api/pypi/pypi/simple"
 
 only use art if on nw network
 
+Note for security keys to resolve:
+check if azure cli is installed with az --version
+az login with the test account.  Credentials are already setup and role assigned.
+
+
 uvicorn main:app --reload --port 8001
 
-check if azure cli is installed with az --version
-az login after you have your credentials setup for the application and secrets in the vault and permissions set
+For docker setup to run in a container on the cloud (currently running just it is http):
+
+Note while the Vue application can connect from localhost http to cloud http for FastAPI outside of nationwide, within nationwide http is blocked so both will need to run locally.
+
 docker build -t assignment-fastapi-app .
 az acr create --resource-group Assignment --name matlowaiassignmentregistry --sku Basic
 az acr login --name matlowaiassignmentregistry
