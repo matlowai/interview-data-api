@@ -1,6 +1,17 @@
+For local language model implementation I used:
+https://github.com/oobabooga/
+https://huggingface.co/TheBloke/Capybara-Tess-Yi-34B-200K-GPTQ
+8k context length is recommended, 200k context is max but exceeds 24GB card. default import settings are good
+
+I also experimented with this but it would have needed additional tuning to make work
+https://huggingface.co/TheBloke/openinstruct-mistral-7B-GPTQ/
+
 # dylan-insurance-data-api
 Interview python api
 pip install pandas azure-cosmos python-multipart fastapi uvicorn markovify faker pyyaml azure-storage-blob azure-storage-blob azure-identity azure-keyvault-secrets azure-appconfiguration httpx fastapi-security --index-url "https://art.nwie.net/artifactory/api/pypi/pypi/simple"
+
+only use art if on nw network
+
 uvicorn main:app --reload --port 8001
 
 check if azure cli is installed with az --version
@@ -45,3 +56,5 @@ az acr credential show --name matlowaiassignmentregistry --resource-group Assign
 
 well it crashed so lets see what happened
 az container logs --resource-group Assignment --name assignment-fastapi-app
+
+it was missing access
