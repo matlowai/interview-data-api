@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pandas
+azure-cosmos
+python-multipart
+markovify
+faker
+pyyaml
+azure-storage-blob
+azure-identity
+azure-keyvault-secrets
+azure-appconfiguration
+httpx
+fastapi-security

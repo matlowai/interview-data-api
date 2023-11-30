@@ -40,7 +40,7 @@ app = FastAPI()
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173","http://localhost:8080"],  # Allows requests from your frontend
+    allow_origins=["http://localhost:5173","http://localhost:8080", "https://ashy-rock-000761b1e.4.azurestaticapps.net/"],  # Allows requests from your frontend
     allow_credentials=True,
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers

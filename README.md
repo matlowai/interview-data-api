@@ -5,4 +5,43 @@ uvicorn main:app --reload --port 8001
 
 check if azure cli is installed with az --version
 az login after you have your credentials setup for the application and secrets in the vault and permissions set
+docker build -t assignment-fastapi-app .
+az acr create --resource-group Assignment --name matlowaiassignmentregistry --sku Basic
+az acr login --name matlowaiassignmentregistry
+docker tag assignment-fastapi-app matlowaiassignmentregistry.azurecr.io/assignment-fastapi-app:v1
+docker push matlowaiassignmentregistry.azurecr.io/assignment-fastapi-app:v1
 
+az ad sp create-for-rbac --name matlowaiassignmentprincipal --skip-assignment
+
+
+cmd terminal use this
+az container create \
+  --resource-group Assignment \
+  --name assignment-fastapi-app \
+  --image matlowaiassignmentregistry.azurecr.io/assignment-fastapi-app:v1 \
+  --cpu 1 --memory 1 \
+  --registry-login-server matlowaiassignmentregistry.azurecr.io \
+  --registry-username <acr-username> \
+  --registry-password <acr-password> \
+  --dns-name-label matlowaiassignmentfastapiapp-dns-name \
+  --ports 8001
+
+powershell use this
+az container create `
+  --resource-group Assignment `
+  --name assignment-fastapi-app `
+  --image matlowaiassignmentregistry.azurecr.io/assignment-fastapi-app:v1 `
+  --cpu 1 --memory 1 `
+  --registry-login-server matlowaiassignmentregistry.azurecr.io `
+  --registry-username matlowaiassignmentregistry `
+  --registry-password [Your_ACR_Password] `
+  --dns-name-label matlowaiassignmentfastapiapp-dns-name `
+  --ports 8001 `
+  --environment-variables 'AZURE_CLIENT_ID=[Your_Service_Principal_AppId]' 'AZURE_CLIENT_SECRET=[Your_Service_Principal_Password]' 'AZURE_TENANT_ID=[Your_Tenant_ID]'
+
+note to retrieve username and pwd:
+az acr update -n matlowaiassignmentregistry --admin-enabled true
+az acr credential show --name matlowaiassignmentregistry --resource-group Assignment
+
+well it crashed so lets see what happened
+az container logs --resource-group Assignment --name assignment-fastapi-app
