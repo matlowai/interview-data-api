@@ -68,7 +68,7 @@ async def call_gpt_service(textfile: str):
         "mode": "instruct",
         "instruction_template": "Alpaca"
     }
-    timeout = httpx.Timeout(30.0, connect=60.0)
+    timeout = httpx.Timeout(600.0, connect=600.0)
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(gpt_service_url, json=request_body)
         if response.status_code == 200:
